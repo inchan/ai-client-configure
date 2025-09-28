@@ -33,3 +33,9 @@ moving to the next step.
 - Encourage running `pytest` locally before committing changes.
 - Future work: integrate linters such as Ruff or mypy if type checking becomes
   necessary.
+
+## Stage 5 – Static analysis tooling
+
+- Add a Ruff configuration to enforce consistent imports and style checks.
+- Provide an optional `dev` dependency group so contributors can install linting tools.
+- Document the expectation that `ruff check .` is run alongside the test suite.

@@ -20,6 +20,12 @@ editable mode while developing:
 pip install -e .
 ```
 
+Install the optional development dependencies to run linters locally:
+
+```bash
+pip install -e .[dev]
+```
+
 Alternatively you can execute the CLI directly without installing:
 
 ```bash
@@ -56,7 +62,13 @@ Pass `--as-json` to view the raw JSON output.
 ## Development workflow
 
 1. Review the staged approach documented in `docs/PROJECT_PLAN.md`.
-2. Run the test suite with `pytest` before committing changes.
+2. Run static analysis and the test suite before committing changes:
+
+   ```bash
+   ruff check .
+   pytest
+   ```
+
 3. Update the documentation when adding new CLI commands or configuration options.
 
 ## License
