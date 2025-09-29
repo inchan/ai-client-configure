@@ -3,7 +3,9 @@
 `ai-client-configure` is a lightweight command line utility that helps teams create,
 validate, and inspect configuration files for AI chat clients. The tool embraces a
 step-by-step workflow documented in `docs/PROJECT_PLAN.md` so contributors can follow
-a predictable process when extending the project.
+a predictable process when extending the project. Stage 6 expands this repository into
+the AI Client 동기화 서비스 by adding a FastAPI backend, Redis broker, and supporting
+infrastructure defined in the architecture documents.
 
 ## Features
 
@@ -19,6 +21,24 @@ editable mode while developing:
 ```bash
 pip install -e .
 ```
+
+Install the optional development dependencies to run linters and tests locally:
+
+```bash
+pip install -e .[dev]
+```
+
+To bootstrap the 동기화 서비스 backend stack, run the helper script which prefers
+`uv` when available and falls back to `pip`:
+
+```bash
+./scripts/dev_setup.sh
+```
+
+The script installs the backend optional dependency group defined in
+`pyproject.toml` so the FastAPI app, Redis client, and database stack are ready to
+use. It also copies `.env.example` to `.env` the first time you run it so 환경 변수를
+쉽게 커스터마이즈할 수 있습니다.
 
 Alternatively you can execute the CLI directly without installing:
 
@@ -53,11 +73,84 @@ ai-client-configure show
 
 Pass `--as-json` to view the raw JSON output.
 
+## 동기화 서비스 개발 환경
+
+Stage 6 introduces a local web service that monitors MCP/Rule/Allowed-tools 구성 파일
+변경을 처리할 준비를 합니다. The following commands align with `ENV-01` in the task
+sheet:
+
+1. **Install dependencies**
+
+   ```bash
+   ./scripts/dev_setup.sh
+   ```
+
+2. **Run the FastAPI backend locally**
+
+   ```bash
+   uvicorn sync_service.main:app --reload
+   ```
+
+3. **Launch via Docker Compose**
+
+   ```bash
+   docker compose up --build
+   ```
+
+   The compose stack builds the API container and starts Redis Streams so 실시간
+   이벤트 전파 실험을 위한 기반이 마련됩니다.
+
+Once the server is running you can verify the health endpoint:
+
+```bash
+curl http://localhost:8000/api/v1/health
+```
+
+You should receive `{"status": "ok"}`.
+
+### 비밀 관리
+
+동기화 서비스는 keyring을 활용해 API 토큰 등 민감한 값을 저장합니다.
+
+1. `.env` 파일에서 `SYNC_SERVICE_SECRET_SERVICE_NAME`과 프리셋 키 이름을
+   확인합니다 (필요시 수정).
+2. 비밀을 저장하려면 CLI 헬퍼를 사용하세요:
+
+   ```bash
+   python -m sync_service.secrets set api-token
+   python -m sync_service.secrets set admin-password
+   ```
+
+   `--value` 옵션으로 값을 직접 전달하거나, 생략하면 프롬프트가 표시됩니다.
+3. 모든 필수 비밀이 설정되었는지 확인하려면 다음 명령을 실행합니다:
+
+   ```bash
+   python -m sync_service.secrets check
+   ```
+
+   누락된 항목이 있으면 키 이름을 알려줍니다. 저장된 값을 출력하려면
+   `python -m sync_service.secrets get api-token --reveal`과 같이 실행할 수
+   있습니다.
+
 ## Development workflow
 
 1. Review the staged approach documented in `docs/PROJECT_PLAN.md`.
-2. Run the test suite with `pytest` before committing changes.
-3. Update the documentation when adding new CLI commands or configuration options.
+2. Run static analysis and the test suite before committing changes:
+
+   ```bash
+   ruff check .
+   pytest
+   ```
+
+3. Update the documentation when adding new CLI commands, 동기화 서비스 기능, or
+   infrastructure.
+
+## Design documentation
+
+- **Stage 1 연구 자료**: `docs/research/stage1_technical_research.md`에서 클라이언트별 MCP/Rule/Allowed-tools 구조와 동기화 고려사항을 확인할 수 있습니다.
+- **아키텍처 & 기술 스택**: `docs/architecture/architecture_and_stack.md`는 추천 아키텍처와 선택한 스택, 요구사항 대응 전략을 설명합니다.
+- **상세 설계**: `docs/design/detailed_design.md`는 컴포넌트/데이터 흐름/DB 설계/UI 흐름/동기화 알고리즘을 포함합니다.
+- **Task 관리 시트**: `docs/tasks/task_sheet.md`는 워크플로별 세부 Task, 의존성, 테스트 시나리오를 제공합니다.
 
 ## License
 
